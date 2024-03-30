@@ -3,6 +3,25 @@ from printer import term_colors as tc
 from helpers import get_inverse
 from user import User
 
+
+class AttackType:
+    """
+    Class to define the type of attack.
+
+    Attributes:
+    -----------
+    BRUTE_FORCE : int
+        The brute force attack.
+    SHANKS_BSGS : int
+        The Shanks Baby-Step Giant-Step attack.
+    POLLARD_RHO : int
+        The Pollard Rho attack.
+    """
+
+    BRUTE_FORCE = 1
+    SHANKS_BSGS = 2
+
+
 class ElGamal:
     """
     Class to define an ElGamal encryption system.
@@ -436,6 +455,90 @@ class ElGamal:
             )
         return new_sk
 
+    ## Attack methods
+
+    def attack(self, attack_type: int, m) -> int:
+        """
+        Attack the ElGamal encryption system.
+
+        Parameters:
+        -----------
+        attack_type : int
+            The type of attack.
+
+        Returns:
+        --------
+        int
+            The result of the attack.
+        """
+
+        if self.debug:
+            print(
+                f"Attacking {tc.GREEN}ElGamal{tc.RESET} encryption system with {tc.BLUE}{tc.BOLD}Attack Type{tc.RESET}={tc.BOLD}{tc.YELLOW}{attack_type}{tc.RESET}..."
+            )
+
+        sks = []
+        for t in m:
+            if attack_type == AttackType.BRUTE_FORCE:
+                found = self.brute_force(t[0])
+            elif attack_type == AttackType.SHANKS_BSGS:
+                found = self.shanks_bsgs(t[0])
+            else:
+                print(f"{tc.RED}Invalid attack type!{tc.RESET}")
+
+            if found != -1:
+                print(f"Found {tc.BOLD}{tc.YELLOW}{found}{tc.RESET}!")
+                sks.append(found)
+            else:
+                print(f"{tc.RED}Couldn't find the result!{tc.RESET}")
+        return sks
+    
+    def brute_force(self, K: int) -> int:
+        """
+        Solve the Discrete Logarithm using the Brute Force method.
+
+        Returns:
+        --------
+        int
+            The result of the attack.
+        """
+        if self.debug:
+            print(
+                f"Solving {tc.GREEN}Discrete Logarithm{tc.RESET} using {tc.BLUE}{tc.BOLD}Brute Force{tc.RESET} method"
+            )
+
+        for i in range(1, self.p):
+            if self.g**i % self.p == K:
+                return i
+        return -1
+
+    def shanks_bsgs(self, K: int) -> int:
+        """
+        Solve the Discrete Logarithm using the Shanks Baby-Step Giant-Step method.
+
+        Returns:
+        --------
+        int
+            The result of the attack.
+        """
+        if self.debug:
+            print(
+                f"Solving {tc.GREEN}Discrete Logarithm{tc.RESET} using {tc.BLUE}{tc.BOLD}Shanks Baby-Step Giant-Step{tc.RESET} method"
+            )
+        n = int(self.p**0.5) + 1
+        baby_steps = [(self.g**i) % self.p for i in range(n)]
+
+        # Precompute g^(-n)
+        g_inv_n = get_inverse(self.g**n, self.p)
+
+        # Compute and verify each value (optimization)
+        for j in range(n):
+            y = (K * (g_inv_n**j)) % self.p
+            if y in baby_steps:
+                i = baby_steps.index(y)
+                return i + j * n
+        return -1
+
     ## Message methods
 
     def encrypt_char(self, src: str, dst: str, char: str, debug: bool = False) -> tuple:
@@ -470,7 +573,7 @@ class ElGamal:
         src_user = self.get_user(src)
 
         # 1. Choose new secret key for sender
-        self.get_new_sk(src)  # Also updates public key accordingly
+        self.get_new_sk(src, True)  # Also updates public key accordingly
         c1 = self.get_user_pk(src)  # c1 = g^sk
 
         # 2. Encrypt message with receiver's public key
