@@ -1,39 +1,42 @@
-from elGamal import ElGamal, AttackType
+from cryptosystems import ElGamal
+from attacker import Attacker, AttackType, CryptosystemType
+
 
 def main():
+    src = "Alice"
+    dst = "Bob"
+    atk = "Eve"
+    msg = f"Hello, {dst}! This is a test message from {src}."
+
     # Create an ElGamal object with p = 257 and g = 3
     eg = ElGamal(257, 3, False)
     print()
 
     # Add users Alice, Bob, and Eve
-    eg.add_user("Alice")
-    eg.add_user("Bob")
-    eg.add_user("Eve")
-
-    # Print the status of the ElGamal object
-    eg.print_status()
+    eg.add_user(src, True)
+    eg.add_user(dst, True)
     print()
 
-    src = "Alice"
-    dest = "Bob"
+    attacker = Attacker(atk, eg)
+    print(attacker)
 
-    encr = eg.send_message(src, dest, f"{src} -> {dest}")
+    # Send message
+    m1 = eg.send_message(src, dst, msg)
 
-    # Get all the secret keys used to encrypt the message via bruteforce
-    sks = eg.attack(AttackType.SHANKS_BSGS, encr)
-    print(f"Secret keys hacked: {sks}")
+    # use queue system to 'receive' message
 
+    # Intercept message
+    secret_keys = attacker.intercept_message(AttackType.BRUTE_FORCE, debug=True)
+    print()
 
-    # # Send messages between users
-    # eg.receive_message("Bob", eg.send_message("Alice", "Bob", "Alice to Bob"))
-    # eg.receive_message("Alice", eg.send_message("Bob", "Alice", "Bob to Alice"))
-    # eg.receive_message("Eve", eg.send_message("Alice", "Eve", "Alice to Eve"))
-    # eg.receive_message("Eve", eg.send_message("Bob", "Eve", "Bob to Eve"))
-    # eg.receive_message("Alice", eg.send_message("Eve", "Alice", "Eve to Alice"))
-
-    # # Print the status of the ElGamal object
-    # eg.print_status()
+    # # Receive messages
+    # eg.receive_message(dst, m1)
     # print()
+
+    # Print the status of the ElGamal object
+    print(attacker)
+    eg.print_status()
+    print()
 
 
 if __name__ == "__main__":

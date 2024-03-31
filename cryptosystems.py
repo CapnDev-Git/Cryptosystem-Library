@@ -1,25 +1,7 @@
 from random import randint
 from printer import term_colors as tc
-from helpers import get_inverse
+from utils import get_inverse
 from user import User
-
-
-class AttackType:
-    """
-    Class to define the type of attack.
-
-    Attributes:
-    -----------
-    BRUTE_FORCE : int
-        The brute force attack.
-    SHANKS_BSGS : int
-        The Shanks Baby-Step Giant-Step attack.
-    POLLARD_RHO : int
-        The Pollard Rho attack.
-    """
-
-    BRUTE_FORCE = 1
-    SHANKS_BSGS = 2
 
 
 class ElGamal:
@@ -103,30 +85,33 @@ class ElGamal:
         self.debug = debug
 
         print(
-            f"Creating an ElGamal encryption system ({tc.BOLD}p{tc.RESET}=",
+            f"Creating an ElGamal encryption system ({tc.BOLD.value}p{tc.RESET.value}=",
             end="",
         )
         self._is_valid_prime(p)
 
         print(
-            f"{tc.BOLD}{tc.YELLOW}{p}{tc.RESET}, {tc.BOLD}g{tc.RESET}=",
+            f"{tc.BOLD.value}{tc.YELLOW.value}{p}{tc.RESET.value}, {tc.BOLD.value}g{tc.RESET.value}=",
             end="",
         )
         self._is_valid_generator(p, g)
 
         g = g % p
-        print(f"{tc.BOLD}{tc.YELLOW}{g}{tc.RESET})...", end=" ")
+        print(f"{tc.BOLD.value}{tc.YELLOW.value}{g}{tc.RESET.value})...", end=" ")
 
         self.p = p
         self.g = g
         self.pks = {}
         self.users = []
         self.nb_users = 0
+        self.message_queue = []
 
-        print(f"{tc.GREEN}OK{tc.RESET}")
+        print(f"{tc.GREEN.value}OK{tc.RESET.value}")
         if self.debug:
-            print(f"- Set of messages: {tc.BOLD}(ℤ/{p}ℤ)×{tc.RESET}")
-            print(f"- Set of encrypted messages: {tc.BOLD}(ℤ/{p}ℤ)×²{tc.RESET}")
+            print(f"- Set of messages: {tc.BOLD.value}(ℤ/{p}ℤ)×{tc.RESET.value}")
+            print(
+                f"- Set of encrypted messages: {tc.BOLD.value}(ℤ/{p}ℤ)×²{tc.RESET.value}"
+            )
         self.print_status()
 
     ## Private methods (validity checks)
@@ -141,16 +126,18 @@ class ElGamal:
             The number to check.
         """
         if n < 0:
-            print(f"{tc.RED}KO{tc.RESET}")
-            raise Exception(f"{tc.RED}Given number is negative!{tc.RESET}")
+            print(f"{tc.RED.value}KO{tc.RESET.value}")
+            raise Exception(f"{tc.RED.value}Given number is negative!{tc.RESET.value}")
         if n == 0:
-            print(f"{tc.RED}KO{tc.RESET}")
-            raise Exception(f"{tc.RED}Given number is null!{tc.RESET}")
+            print(f"{tc.RED.value}KO{tc.RESET.value}")
+            raise Exception(f"{tc.RED.value}Given number is null!{tc.RESET.value}")
 
         for i in range(2, n):
             if (n % i) == 0:
-                print(f"{tc.RED}KO{tc.RESET}")
-                raise Exception(f"{tc.RED}Given number is not prime!{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
+                raise Exception(
+                    f"{tc.RED.value}Given number is not prime!{tc.RESET.value}"
+                )
 
     def _is_valid_generator(self, p: int, g: int) -> None:
         """
@@ -164,11 +151,13 @@ class ElGamal:
             The number to check as a generator.
         """
         if g < 0:
-            print(f"{tc.RED}KO{tc.RESET}")
-            raise Exception(f"{tc.RED}Given generator is negative!{tc.RESET}")
+            print(f"{tc.RED.value}KO{tc.RESET.value}")
+            raise Exception(
+                f"{tc.RED.value}Given generator is negative!{tc.RESET.value}"
+            )
         if g == 0:
-            print(f"{tc.RED}KO{tc.RESET}")
-            raise Exception(f"{tc.RED}Given generator is null!{tc.RESET}")
+            print(f"{tc.RED.value}KO{tc.RESET.value}")
+            raise Exception(f"{tc.RED.value}Given generator is null!{tc.RESET.value}")
 
         nb_seen = 0
         seen = [False] * p
@@ -178,15 +167,15 @@ class ElGamal:
                 seen[curr] = True
                 nb_seen += 1
             else:
-                print(f"{tc.RED}KO{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
                 raise Exception(
-                    f"{tc.RED}Given generator is not a generator of the multiplicative group {tc.BOLD}(ℤ/{p}ℤ)×{tc.RESET}!{tc.RESET}"
+                    f"{tc.RED.value}Given generator is not a generator of the multiplicative group {tc.BOLD.value}(ℤ/{p}ℤ)×{tc.RESET.value}!{tc.RESET.value}"
                 )
 
         if nb_seen != p - 1:
-            print(f"{tc.RED}KO{tc.RESET}")
+            print(f"{tc.RED.value}KO{tc.RESET.value}")
             raise Exception(
-                f"{tc.RED}Given generator is not a generator of the multiplicative group {tc.BOLD}(ℤ/{p}ℤ)×{tc.RESET}!{tc.RESET}"
+                f"{tc.RED.value}Given generator is not a generator of the multiplicative group {tc.BOLD.value}(ℤ/{p}ℤ)×{tc.RESET.value}!{tc.RESET.value}"
             )
 
     def _is_valid_username(self, name: str) -> None:
@@ -200,8 +189,10 @@ class ElGamal:
         """
         if name == None or name == "":
             if self.debug:
-                print(f"{tc.RED}KO{tc.RESET}")
-                raise Exception(f"{tc.RED}Given name for user is empty!{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
+                raise Exception(
+                    f"{tc.RED.value}Given name for user is empty!{tc.RESET.value}"
+                )
 
     def _is_valid_sk(self, sk: int) -> None:
         """
@@ -214,9 +205,9 @@ class ElGamal:
         """
         if sk < 0:
             if self.debug:
-                print(f"{tc.RED}KO{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
             raise Exception(
-                f"{tc.RED}Given private key for user is negative!{tc.RESET}"
+                f"{tc.RED.value}Given private key for user is negative!{tc.RESET.value}"
             )
 
     def _is_valid_pk(self, pk: int) -> None:
@@ -230,8 +221,10 @@ class ElGamal:
         """
         if pk == None:
             if self.debug:
-                print(f"{tc.RED}KO{tc.RESET}")
-            raise Exception(f"{tc.RED}Given public key for user is empty!{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
+            raise Exception(
+                f"{tc.RED.value}Given public key for user is empty!{tc.RESET.value}"
+            )
 
     def _is_valid_char(self, char: str) -> None:
         """
@@ -244,9 +237,9 @@ class ElGamal:
         """
         if ord(char) > self.p:
             if self.debug:
-                print(f"{tc.RED}KO{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
             raise Exception(
-                f"{tc.RED}Given message is greater than {tc.BOLD}p{tc.RESET}={tc.BOLD}{self.p}{tc.RESET}!{tc.RESET}"
+                f"{tc.RED.value}Given message is greater than {tc.BOLD.value}p{tc.RESET.value}={tc.BOLD.value}{self.p}{tc.RESET.value}!{tc.RESET.value}"
             )
 
     def _is_valid_message(self, m: str) -> None:
@@ -260,8 +253,8 @@ class ElGamal:
         """
         if m == None or m == "":
             if self.debug:
-                print(f"{tc.RED}KO{tc.RESET}")
-            raise Exception(f"{tc.RED}Given message is empty!{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
+            raise Exception(f"{tc.RED.value}Given message is empty!{tc.RESET.value}")
 
     def _is_valid_dst(self, src: str, dst: str) -> None:
         """
@@ -276,9 +269,9 @@ class ElGamal:
         """
         if src == dst:
             if self.debug:
-                print(f"{tc.RED}KO{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
             raise Exception(
-                f"{tc.RED}Given sender and receiver are the same!{tc.RESET}"
+                f"{tc.RED.value}Given sender and receiver are the same!{tc.RESET.value}"
             )
 
     def _user_exists(self, name: str) -> None:
@@ -292,9 +285,9 @@ class ElGamal:
         """
         if name not in self.pks:
             if self.debug:
-                print(f"{tc.RED}KO{tc.RESET}")
+                print(f"{tc.RED.value}KO{tc.RESET.value}")
             raise Exception(
-                f"{tc.RED}Given name for user is not in user list!{tc.RESET}"
+                f"{tc.RED.value}Given name for user is not in user list!{tc.RESET.value}"
             )
 
     ## User methods
@@ -312,7 +305,7 @@ class ElGamal:
         """
         if self.debug or debug:
             print(
-                f"Adding new user \"{name if (name != None and name != '') else 'ERROR'}\"...",
+                f"Adding new user {tc.BOLD.value}{tc.YELLOW.value}{name if (name != None and name != '') else 'ERROR'}{tc.RESET.value}...",
                 end=" ",
             )
 
@@ -329,7 +322,7 @@ class ElGamal:
         self.nb_users += 1
 
         if self.debug or debug:
-            print(f"{tc.GREEN}OK{tc.RESET}")
+            print(f"{tc.GREEN.value}OK{tc.RESET.value}")
 
     def remove_user(self, name: str, debug: bool = False) -> None:
         """
@@ -354,9 +347,9 @@ class ElGamal:
                 self.nb_users -= 1
 
                 if self.debug or debug:
-                    print(f"{tc.GREEN}OK{tc.RESET}")
+                    print(f"{tc.GREEN.value}OK{tc.RESET.value}")
                 return
-        print(f'{tc.RED}Couldn\'t find user "{name}" to remove{tc.RESET}')
+        print(f'{tc.RED.value}Couldn\'t find user "{name}" to remove{tc.RESET.value}')
 
     def get_user(self, name: str, debug: bool = False) -> User:
         """
@@ -383,9 +376,9 @@ class ElGamal:
         for user in self.users:
             if user.name == name:
                 if self.debug or debug:
-                    print(f"{tc.GREEN}OK{tc.RESET}")
+                    print(f"{tc.GREEN.value}OK{tc.RESET.value}")
                 return user
-        print(f'{tc.RED}Couldn\'t find user "{name}"{tc.RESET}')
+        print(f'{tc.RED.value}Couldn\'t find user "{name}"{tc.RESET.value}')
 
     def get_user_pk(self, name: str, debug: bool = False) -> int:
         """
@@ -413,8 +406,10 @@ class ElGamal:
         self._is_valid_pk(pk)
 
         if self.debug or debug:
-            print(f"{tc.GREEN}OK{tc.RESET}")
-            print(f'Public key for user "{name}": {tc.BOLD}{tc.BLUE}{pk}{tc.RESET}')
+            print(f"{tc.GREEN.value}OK{tc.RESET.value}")
+            print(
+                f'Public key for user "{name}": {tc.BOLD.value}{tc.BLUE.value}{pk}{tc.RESET.value}'
+            )
         return pk
 
     def get_new_sk(self, name: str, debug: bool = False) -> int:
@@ -449,95 +444,11 @@ class ElGamal:
         self.pks[name] = (self.g**new_sk) % self.p
 
         if self.debug or debug:
-            print(f"{tc.GREEN}OK{tc.RESET}")
+            print(f"{tc.GREEN.value}OK{tc.RESET.value}")
             print(
-                f'New private key for user "{name}": {tc.BOLD}{tc.RED}{new_sk}{tc.RESET}'
+                f'New private key for user "{name}": {tc.BOLD.value}{tc.RED.value}{new_sk}{tc.RESET.value}'
             )
         return new_sk
-
-    ## Attack methods
-
-    def attack(self, attack_type: int, m) -> int:
-        """
-        Attack the ElGamal encryption system.
-
-        Parameters:
-        -----------
-        attack_type : int
-            The type of attack.
-
-        Returns:
-        --------
-        int
-            The result of the attack.
-        """
-
-        if self.debug:
-            print(
-                f"Attacking {tc.GREEN}ElGamal{tc.RESET} encryption system with {tc.BLUE}{tc.BOLD}Attack Type{tc.RESET}={tc.BOLD}{tc.YELLOW}{attack_type}{tc.RESET}..."
-            )
-
-        sks = []
-        for t in m:
-            if attack_type == AttackType.BRUTE_FORCE:
-                found = self.brute_force(t[0])
-            elif attack_type == AttackType.SHANKS_BSGS:
-                found = self.shanks_bsgs(t[0])
-            else:
-                print(f"{tc.RED}Invalid attack type!{tc.RESET}")
-
-            if found != -1:
-                print(f"Found {tc.BOLD}{tc.YELLOW}{found}{tc.RESET}!")
-                sks.append(found)
-            else:
-                print(f"{tc.RED}Couldn't find the result!{tc.RESET}")
-        return sks
-    
-    def brute_force(self, K: int) -> int:
-        """
-        Solve the Discrete Logarithm using the Brute Force method.
-
-        Returns:
-        --------
-        int
-            The result of the attack.
-        """
-        if self.debug:
-            print(
-                f"Solving {tc.GREEN}Discrete Logarithm{tc.RESET} using {tc.BLUE}{tc.BOLD}Brute Force{tc.RESET} method"
-            )
-
-        for i in range(1, self.p):
-            if self.g**i % self.p == K:
-                return i
-        return -1
-
-    def shanks_bsgs(self, K: int) -> int:
-        """
-        Solve the Discrete Logarithm using the Shanks Baby-Step Giant-Step method.
-
-        Returns:
-        --------
-        int
-            The result of the attack.
-        """
-        if self.debug:
-            print(
-                f"Solving {tc.GREEN}Discrete Logarithm{tc.RESET} using {tc.BLUE}{tc.BOLD}Shanks Baby-Step Giant-Step{tc.RESET} method"
-            )
-        n = int(self.p**0.5) + 1
-        baby_steps = [(self.g**i) % self.p for i in range(n)]
-
-        # Precompute g^(-n)
-        g_inv_n = get_inverse(self.g**n, self.p)
-
-        # Compute and verify each value (optimization)
-        for j in range(n):
-            y = (K * (g_inv_n**j)) % self.p
-            if y in baby_steps:
-                i = baby_steps.index(y)
-                return i + j * n
-        return -1
 
     ## Message methods
 
@@ -563,7 +474,7 @@ class ElGamal:
         """
         if self.debug or debug:
             print(
-                f"Encrypting character {tc.BOLD}{tc.YELLOW}{char}{tc.RESET} from {src} to {dst}...",
+                f"Encrypting character {tc.BOLD.value}{tc.YELLOW.value}{char}{tc.RESET.value} from {src} to {dst}...",
                 end=" ",
             )
 
@@ -573,7 +484,7 @@ class ElGamal:
         src_user = self.get_user(src)
 
         # 1. Choose new secret key for sender
-        self.get_new_sk(src, True)  # Also updates public key accordingly
+        self.get_new_sk(src)  # Also updates public key accordingly
         c1 = self.get_user_pk(src)  # c1 = g^sk
 
         # 2. Encrypt message with receiver's public key
@@ -581,9 +492,9 @@ class ElGamal:
         c2 = (ord(char) * (dst_pk**src_user.sk)) % self.p
 
         if self.debug or debug:
-            print(f"{tc.GREEN}OK{tc.RESET}")
+            print(f"{tc.GREEN.value}OK{tc.RESET.value}")
             print(
-                f"Encrypted character: ({tc.BOLD}c1{tc.RESET}={tc.BOLD}{tc.YELLOW}{c1}{tc.RESET}, {tc.BOLD}c2{tc.RESET}={tc.BOLD}{tc.YELLOW}{c2}{tc.RESET})"
+                f"Encrypted character: ({tc.BOLD.value}c1{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{c1}{tc.RESET.value}, {tc.BOLD.value}c2{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{c2}{tc.RESET.value})"
             )
 
         return (c1, c2)
@@ -610,7 +521,7 @@ class ElGamal:
         """
         if self.debug or debug:
             print(
-                f"Sending message {tc.BOLD}{tc.YELLOW}{m}{tc.RESET} from {src} to {dst}...",
+                f"Sending message {tc.BOLD.value}{tc.YELLOW.value}{m}{tc.RESET.value} from {src} to {dst}...",
                 end=" ",
             )
 
@@ -630,15 +541,18 @@ class ElGamal:
             chars.append(self.encrypt_char(src, dst, char, debug))
 
         if self.debug or debug:
-            print(f"{tc.GREEN}OK{tc.RESET}")
-            print(f"Encrypted message: {tc.BOLD}{tc.YELLOW}{chars}{tc.RESET}")
+            print(f"{tc.GREEN.value}OK{tc.RESET.value}")
+            print(
+                f"Encrypted message: {tc.BOLD.value}{tc.YELLOW.value}{chars}{tc.RESET.value}"
+            )
 
         # 3. Update users' messages
         src_user.sent_messages.append(m)
         src_user.nb_sent_messages += 1
 
         # 4. Send message to receiver
-        return chars
+        self.message_queue.insert(0, (dst, (src, chars)))
+        return (src, chars)
 
     def decrypt_char(self, dst: str, char: tuple, debug: bool = False) -> int:
         """
@@ -660,7 +574,7 @@ class ElGamal:
         """
         if self.debug or debug:
             print(
-                f"Decrypting character ({tc.BOLD}c1{tc.RESET}={tc.BOLD}{tc.YELLOW}{char[0]}{tc.RESET}, {tc.BOLD}c2{tc.RESET}={tc.BOLD}{tc.YELLOW}{char[1]}{tc.RESET}) for {dst}...",
+                f"Decrypting character ({tc.BOLD.value}c1{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{char[0]}{tc.RESET.value}, {tc.BOLD.value}c2{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{char[1]}{tc.RESET.value}) for {dst}...",
                 end=" ",
             )
 
@@ -675,8 +589,10 @@ class ElGamal:
         dec = (c1_inv * c2) % self.p  # m = c2 * c1^-sk
 
         if self.debug or debug:
-            print(f"{tc.GREEN}OK{tc.RESET}")
-            print(f"Decrypted character: {tc.BOLD}{tc.YELLOW}{dec}{tc.RESET}")
+            print(f"{tc.GREEN.value}OK{tc.RESET.value}")
+            print(
+                f"Decrypted character: {tc.BOLD.value}{tc.YELLOW.value}{dec}{tc.RESET.value}"
+            )
 
         return dec  # Return decrypted char
 
@@ -700,22 +616,21 @@ class ElGamal:
         """
         if self.debug or debug:
             print(
-                f"Receiving message ({tc.BOLD}c1{tc.RESET}={tc.BOLD}{tc.YELLOW}{encrypted[0]}{tc.RESET}, {tc.BOLD}c2{tc.RESET}={tc.BOLD}{tc.YELLOW}{encrypted[1]}{tc.RESET}) for {dst}...",
-                end=" ",
+                f"Receiving message from {tc.BOLD.value}{tc.YELLOW.value}{encrypted[0]}{tc.RESET.value}..."
             )
-
-        chars = encrypted
 
         self._is_valid_username(dst)
         self._user_exists(dst)
 
-        m = ""
+        chars, m = encrypted[1], ""
         for char in chars:
             m += chr(self.decrypt_char(dst, char, debug))
 
         if self.debug or debug:
-            print(f"{tc.GREEN}OK{tc.RESET}")
-            print(f"Decrypted message: {tc.BOLD}{tc.YELLOW}{m}{tc.RESET}")
+            print(f"{tc.GREEN.value}OK{tc.RESET.value}")
+            print(
+                f"Decrypted message: {tc.BOLD.value}{tc.YELLOW.value}{m}{tc.RESET.value}"
+            )
 
         # 3. Update users' messages
         dst_user = self.get_user(dst)
@@ -723,6 +638,7 @@ class ElGamal:
         dst_user.nb_received_messages += 1
 
         # 4. Send message to receiver
+        self.message_queue.pop()
         return m
 
     ## Print methods
@@ -736,7 +652,7 @@ class ElGamal:
             return
 
         print(
-            f"Number of connected users: {tc.BOLD}{tc.YELLOW}{self.nb_users}{tc.RESET}"
+            f"Number of connected users: {tc.BOLD.value}{tc.YELLOW.value}{self.nb_users}{tc.RESET.value}"
         )
         self.print_users()
 
@@ -749,7 +665,7 @@ class ElGamal:
             print(
                 f"- User {i+1}: "
                 + str(curr_user)
-                + f", {tc.BOLD}pk{tc.RESET}={tc.BOLD}{tc.BLUE}{self.pks[curr_user.name]}{tc.RESET})"
+                + f", {tc.BOLD.value}pk{tc.RESET.value}={tc.BOLD.value}{tc.BLUE.value}{self.pks[curr_user.name]}{tc.RESET.value})"
             )
             self.users[i].print_inbox()
             print()
@@ -764,6 +680,7 @@ class ElGamal:
             A string representation of the encryption system.
         """
         return (
-            f"ElGamal encryption system ({tc.BOLD}p{tc.RESET}={tc.BOLD}{tc.BLUE}{self.p}{tc.RESET}, {tc.BOLD}g{tc.RESET}={tc.BOLD}{tc.BLUE}{self.g}{tc.RESET})"
-            + f" with {tc.BOLD}{tc.BLUE}{self.nb_users}{tc.RESET} users"
+            f"ElGamal encryption system ({tc.BOLD.value}p{tc.RESET.value}={tc.BOLD.value}{tc.BLUE.value}{self.p}{tc.RESET.value}, {tc.BOLD.value}g{tc.RESET.value}={tc.BOLD.value}{tc.BLUE.value}{self.g}{tc.RESET.value})"
+            + f" with {tc.BOLD.value}{tc.BLUE.value}{self.nb_users}{tc.RESET.value} users.\n"
+            + f"Current message queue: {tc.BOLD.value}{tc.YELLOW.value}{self.message_queue}{tc.RESET.value}\n"
         )
