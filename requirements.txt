@@ -1,1 +1,4 @@
 graphviz==0.20.1
+numpy==1.23.5
+matplotlib==3.6.3
+matplotlib-inline==0.1.6
