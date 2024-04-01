@@ -555,6 +555,8 @@ class ElGamal:
 
         # 4. Send message to receiver
         self.message_queue.insert(0, (dst, (src, chars)))
+
+        # 5. Return encrypted message
         return (src, chars)
 
     def decrypt_char(self, dst: str, char: tuple, debug: bool = False) -> int:
@@ -597,7 +599,8 @@ class ElGamal:
                 f"Decrypted character: {tc.BOLD.value}{tc.YELLOW.value}{dec}{tc.RESET.value}"
             )
 
-        return dec  # Return decrypted char
+        # 2. Return decrypted character
+        return dec
 
     def receive_message(self, dst: str, encrypted: list, debug: bool = False) -> str:
         """
@@ -625,8 +628,10 @@ class ElGamal:
         self._is_valid_username(dst)
         self._user_exists(dst)
 
-        m = ""
-        src, chars = encrypted
+        # 0. Get encrypted message
+        chars, m = encrypted[1], ""
+
+        # 1. Decrypt each char of the message
         for char in chars:
             m += chr(self.decrypt_char(dst, char, debug))
 
@@ -636,13 +641,15 @@ class ElGamal:
                 f"Decrypted message: {tc.BOLD.value}{tc.YELLOW.value}{m}{tc.RESET.value}"
             )
 
-        # 3. Update users' messages
+        # 2. Update destination user's messages stats
         dst_user = self.get_user(dst)
         dst_user.received_messages.append(m)
         dst_user.nb_received_messages += 1
 
-        # 4. Delete message from queue
+        # 3. Delete message from queue
         self.message_queue.pop()
+
+        # 4. Return decrypted message
         return m
 
     ## Print methods
@@ -705,7 +712,16 @@ class ElGamal:
             + f"Current message queue: {tc.BOLD.value}{tc.YELLOW.value}{self.message_queue}{tc.RESET.value}\n"
         )
 
-    def to_dot(self):
+    def to_dot(self) -> str:
+        """
+        Convert the encryption system to a dot format string.
+
+        Returns:
+        --------
+        str
+            A dot format string of the encryption system.
+        """
+
         dot_string = "digraph CryptoSystem {\n"
         dot_string += "    node [shape=plaintext]\n"
         dot_string += '    labelloc="t";\n'
@@ -743,7 +759,27 @@ class ElGamal:
 
     def export_graph(
         self, filename="elgamal_graph", folder="graphs_elgamal", same=False, debug=False
-    ):
+    ) -> None:
+        """
+        Export a dot format string into a PNG file.
+
+        Parameters:
+        -----------
+        filename : str, optional
+            The name of the PNG file, by default "elgamal_graph"
+        folder : str, optional
+            The folder to save the PNG file, by default "graphs_elgamal"
+        same : bool, optional
+            A boolean to save the PNG file with the same name, by default False
+        debug : bool, optional
+            A boolean to print debug information, by default False
+
+        Raises:
+        -------
+        Exception
+            If the folder doesn't exist.
+        """
+
         if self.debug or debug:
             print(f"Exporting {tc.BOLD.value}ElGamal{tc.RESET.value} graph to PNG...")
 
