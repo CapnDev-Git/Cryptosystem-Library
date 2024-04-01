@@ -15,6 +15,8 @@ class term_colors(enum.Enum):
         The color for the yellow text.
     RED : str
         The color for the red text.
+    PURPLE : str
+        The color for the purple text.
     YELLOW : str
         The color for the purple text.
     RESET : str
@@ -27,5 +29,6 @@ class term_colors(enum.Enum):
     GREEN = "\033[92m"
     YELLOW = "\033[33m"
     RED = "\033[91m"
+    PURPLE = "\033[95m"
     RESET = "\033[0m"
     BOLD = "\033[1m"

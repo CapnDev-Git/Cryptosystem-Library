@@ -1,3 +1,6 @@
+import random
+
+
 def find_generator(p: int) -> int:
     """
     Find a generator of the cyclic group Z/pZ, where p is a prime number given as input.
@@ -88,3 +91,20 @@ def get_inverse(n: int, p: int) -> int:
 
     # Consequence of Little Fermat's theorem: a^(p-1) = 1 mod p
     return pow(n, p - 2, p)
+
+
+def generate_usernames(n: int, fmt: str = "User") -> list:
+    """
+    Generate a list of n users with random names.
+
+    Parameters:
+    -----------
+    n : int
+        The number of users to generate.
+
+    Returns:
+    --------
+    list
+        A list of user names.
+    """
+    return [f"{fmt}{i}" for i in range(n)]

@@ -1,7 +1,9 @@
 from random import randint
 from printer import term_colors as tc
-from utils import get_inverse
 from user import User
+from graphviz import Source
+from os import path as os_path, makedirs as os_makedirs
+from utils import get_inverse
 
 
 class ElGamal:
@@ -543,12 +545,13 @@ class ElGamal:
         if self.debug or debug:
             print(f"{tc.GREEN.value}OK{tc.RESET.value}")
             print(
-                f"Encrypted message: {tc.BOLD.value}{tc.YELLOW.value}{chars}{tc.RESET.value}"
+                f'Encrypted message: "{tc.BOLD.value}{tc.YELLOW.value}{chars}{tc.RESET.value}"'
             )
 
-        # 3. Update users' messages
+        # 3. Update users' messages & connections
         src_user.sent_messages.append(m)
         src_user.nb_sent_messages += 1
+        src_user.connections.append(dst)
 
         # 4. Send message to receiver
         self.message_queue.insert(0, (dst, (src, chars)))
@@ -622,7 +625,8 @@ class ElGamal:
         self._is_valid_username(dst)
         self._user_exists(dst)
 
-        chars, m = encrypted[1], ""
+        m = ""
+        src, chars = encrypted
         for char in chars:
             m += chr(self.decrypt_char(dst, char, debug))
 
@@ -637,7 +641,7 @@ class ElGamal:
         dst_user.received_messages.append(m)
         dst_user.nb_received_messages += 1
 
-        # 4. Send message to receiver
+        # 4. Delete message from queue
         self.message_queue.pop()
         return m
 
@@ -655,6 +659,7 @@ class ElGamal:
             f"Number of connected users: {tc.BOLD.value}{tc.YELLOW.value}{self.nb_users}{tc.RESET.value}"
         )
         self.print_users()
+        self.print_user_connections()
 
     def print_users(self) -> None:
         """
@@ -670,6 +675,21 @@ class ElGamal:
             self.users[i].print_inbox()
             print()
 
+    def print_user_connections(self) -> None:
+        """
+        Print the connections between users.
+        """
+        print("Connections between users:")
+        for user in self.users:
+            if user.connections:
+                print(
+                    f"{tc.BOLD.value}{tc.YELLOW.value}{user.name}{tc.RESET.value} is connected to: {', '.join(user.connections)}"
+                )
+            else:
+                print(
+                    f"{tc.BOLD.value}{tc.YELLOW.value}{user.name}{tc.RESET.value} is not connected to any user."
+                )
+
     def __str__(self) -> str:
         """
         Return a string representation of the encryption system.
@@ -684,3 +704,67 @@ class ElGamal:
             + f" with {tc.BOLD.value}{tc.BLUE.value}{self.nb_users}{tc.RESET.value} users.\n"
             + f"Current message queue: {tc.BOLD.value}{tc.YELLOW.value}{self.message_queue}{tc.RESET.value}\n"
         )
+
+    def to_dot(self):
+        dot_string = "digraph CryptoSystem {\n"
+        dot_string += "    node [shape=plaintext]\n"
+        dot_string += '    labelloc="t";\n'
+        dot_string += '    labeljust="c";\n'
+        dot_string += (
+            '    label="ElGamal, p='
+            + str(self.p)
+            + ", g="
+            + str(self.g)
+            + ", nb_users="
+            + str(self.nb_users)
+            + '";\n'
+            "    fontsize=20;\n"
+        )
+
+        # Add users to the graph
+        for user in self.users:
+            user_pk = self.get_user_pk(user.name)
+            user_info = f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD>{user.name}</TD></TR><TR><TD><FONT COLOR="blue">pk={user_pk}</FONT></TD></TR><TR><TD><FONT COLOR="red">sk={user.sk}</FONT></TD></TR></TABLE>>'
+            dot_string += f"    {user.name} [label={user_info}];\n"
+
+        # Add connections between users
+        connected = set()
+        for user in self.users:
+            for connection in user.connections:
+                if connection in connected:
+                    continue
+                dot_string += (
+                    f"    {user.name} -> {connection};\n"  # Use -> for directed edges
+                )
+                connected.add((user.name, connection))
+
+        dot_string += "}\n"
+        return dot_string
+
+    def export_graph(
+        self, filename="elgamal_graph", folder="graphs_elgamal", same=False, debug=False
+    ):
+        if self.debug or debug:
+            print(f"Exporting {tc.BOLD.value}ElGamal{tc.RESET.value} graph to PNG...")
+
+        dot_graph = self.to_dot()
+        if same:
+            filepath = os_path.join(folder, filename)
+        else:
+            if not os_path.exists(folder):
+                os_makedirs(folder)
+
+            counter = 1
+            while True:
+                filepath = os_path.join(folder, f"{filename}_{counter}")
+                if not os_path.exists(filepath + ".png"):
+                    break
+                counter += 1
+
+        source = Source(dot_graph, filename=filepath, format="png")
+        source.render(filename=filepath, view=False, cleanup=True)
+
+        if self.debug or debug:
+            print(
+                f"Graph exported to {tc.BOLD.value}{tc.YELLOW.value}{filepath}.png{tc.RESET.value}"
+            )

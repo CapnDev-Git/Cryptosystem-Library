@@ -34,9 +34,13 @@ class Attacker:
 
         self.cs = cryptosystem
         self.cs_type = cryptosystem_type.value
-        self.visible_users = [user for user in self.cs.users if user != self.name]
+
+        self.visible_users = {user for user in self.cs.users}
         self.intercepted_messages = []
         self.debug = debug
+
+    def actualize_users(self):
+        self.visible_users = {user for user in self.cs.users}
 
     def intercept_message(self, attack_type: AttackType, debug: bool = False) -> list:
         (dst, (src, message)) = self.cs.message_queue[-1]
@@ -45,27 +49,29 @@ class Attacker:
                 f"Intercepting message for {tc.BOLD.value}{tc.YELLOW.value}{dst}{tc.RESET.value} from {tc.BOLD.value}{tc.YELLOW.value}{src}{tc.RESET.value} using {tc.BOLD.value}{tc.BLUE.value}{self.attack_names[attack_type.value]}{tc.RESET.value} attack..."
             )
 
-        sks, found = [], -1
+        receiver_found = -1
         p, g = self.cs.p, self.cs.g
-        for t in message:
-            if attack_type.value < self.nb_attacks:
-                found = self.attacks[attack_type.value](p, g, t[0])
-            else:
-                print(f"{tc.RED.value}Invalid attack type!{tc.RESET.value}")
+        dst_pk = self.cs.get_user_pk(dst)
 
-            if found != -1:
-                sks.append(found)
-            else:
-                print(f"{tc.RED.value}Couldn't find the result!{tc.RESET.value}")
+        # Find the receiver secret key from its public key
+        if attack_type.value < self.nb_attacks:
+            receiver_sk = self.attacks[attack_type.value](p, g, dst_pk)
+        else:
+            print(f"{tc.RED.value}Invalid attack type!{tc.RESET.value}")
+
+        # Decrypt the intercepted message
+        decrypted_message = ""
+        for c1, c2 in message:
+            decrypted_message += chr((c2 * get_inverse(c1**receiver_sk % p, p)) % p)
 
         if self.debug or debug:
             print(
-                f"{tc.BOLD.value}{tc.RED.value}Secret keys{tc.RESET.value} of {tc.BOLD.value}{tc.YELLOW.value}{src}{tc.RESET.value} used for encrypting message sent to {tc.BOLD.value}{tc.YELLOW.value}{dst}{tc.RESET.value}: {sks}"
+                f'Message intercepted: {tc.BOLD.value}{tc.YELLOW.value}"{decrypted_message}"{tc.RESET.value}'
             )
 
-        # Decrypt the message
-
-        return sks
+        # Add the message to the intercepted messages
+        self.intercepted_messages.append((src, dst, decrypted_message))
+        return decrypted_message
 
     def brute_force(self, p: int, g: int, b: int) -> int:
         """
@@ -113,49 +119,24 @@ class Attacker:
                 return i + j * n
         return -1
 
-    # def intercept_message(
-    #     self,
-    #     attacker: str,
-    #     victim: str,
-    #     encrypted: tuple,
-    #     attack_type: int = AttackType.BRUTE_FORCE,
-    #     debug: bool = False,
-    # ) -> tuple:
-    #     """
-    #     Intercept a message from a sender to a receiver.
-
-    #     Parameters:
-    #     -----------
-    #     attacker : str
-    #         The attacker's name.
-    #     encrypted : list
-    #         The encrypted message.
-    #     attack_type : int, optional
-    #         The type of attack, by default AttackType.BRUTE_FORCE
-
-    #     Returns:
-    #     --------
-    #     tuple
-    #         The decrypted message.
-    #     """
-
-    #     if self.debug or debug:
-    #         print(
-    #             f"Intercepting message ({tc.BOLD.value}c1{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{encrypted[0]}{tc.RESET.value}, {tc.BOLD.value}c2{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{encrypted[1]}{tc.RESET.value}) for {attacker}...",
-    #             end=" ",
-    #         )
-
-    #     # Get all the secret keys used to encrypt the message via bruteforce
-    #     sks = self.attack(attack_type, encrypted)
-    #     print(f"Secret keys hacked: {sks}")
-
     def __str__(self):
         str = ""
-        str += f"{tc.BOLD.value}Attacker {tc.RED.value}{self.name}{tc.RESET.value} is currently intercepting the traffic on the "
+        str += f"{tc.BOLD.value}{tc.RED.value}{self.name}{tc.RESET.value} is currently intercepting the traffic on the "
         str += f"{tc.BOLD.value}{tc.BLUE.value}{self.cs_names[self.cs_type]}{tc.RESET.value} "
-        str += f"({tc.BOLD.value}p{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{self.cs.p}{tc.RESET.value}, {tc.BOLD.value}g{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{self.cs.g}{tc.RESET.value})"
-        str += " network.\n"
-        str += f"Visible Users:\n"
+        str += f"({tc.BOLD.value}p{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{self.cs.p}{tc.RESET.value}, {tc.BOLD.value}g{tc.RESET.value}={tc.BOLD.value}{tc.YELLOW.value}{self.cs.g}{tc.RESET.value}) network.\n"
+
+        str += f"Visible users by attacker:\n"
+        if len(self.visible_users) == 0:
+            str += f"{tc.RED.value}No visible users.{tc.RESET.value}\n"
+            return str
         for user in self.visible_users:
-            str += f"- {tc.BOLD.value}{tc.YELLOW.value}{user.name}{tc.RESET.value}: {tc.BOLD.value}pk{tc.RESET.value}={tc.BOLD.value}{tc.BLUE.value}{self.cs.get_user_pk(user.name)}{tc.RESET.value}\n"
+            str += f" - {tc.BOLD.value}{tc.PURPLE.value}{user.name}{tc.RESET.value}: {tc.BOLD.value}pk{tc.RESET.value}={tc.BOLD.value}{tc.BLUE.value}{self.cs.get_user_pk(user.name)}{tc.RESET.value}\n"
+        str += "\n"
+
+        str += "Intercepted messages by attacker:\n"
+        if len(self.intercepted_messages) == 0:
+            str += f"{tc.RED.value}No intercepted messages.{tc.RESET.value}\n"
+            return str
+        for src, dst, message in self.intercepted_messages:
+            str += f" - {tc.BOLD.value}{tc.PURPLE.value}{src}{tc.RESET.value} -> {tc.BOLD.value}{tc.PURPLE.value}{dst}{tc.RESET.value}: {tc.BOLD.value}{tc.YELLOW.value}{message}{tc.RESET.value}\n"
         return str

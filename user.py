@@ -47,6 +47,7 @@ class User:
         self.nb_received_messages = 0
         self.sent_messages = []
         self.nb_sent_messages = 0
+        self.connections = []
 
     def __str__(self) -> str:
         """
